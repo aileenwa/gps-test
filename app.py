@@ -37,7 +37,7 @@ if uploaded_file is not None:
         def berechne_entfernung(row):
             try:
                 p1 = (row["Geo-Lat"], row["Geo-Lon"])
-                p2 = (row["Liefer_Lat"], row["Liefer_Lon"])
+                p2 = (row["Liefer-Lat"], row["Liefer-Lon"])
                 return round(geodesic(p1, p2).meters, 1)
             except:
                 return None
