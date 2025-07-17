@@ -49,12 +49,21 @@ if uploaded_file is not None:
             df = df.drop(columns=["PLZ"])
 
         # Ergebnis anzeigen
-        st.success("✅ Fertig! Hier ist deine Tabelle:")
+        st.success("Fertig! Hier ist deine Tabelle:")
         st.dataframe(df)
 
-        # Download-Button
-        st.download_button(
-            label="📥 Ergebnis als Excel herunterladen",
-            data=df.to_excel(index=False),
-            file_name="entfernungsergebnis.xlsx"
-        )
+  from io import BytesIO
+
+# Excel in Speicher schreiben
+output = BytesIO()
+df.to_excel(output, index=False)
+output.seek(0)
+
+# Download-Button anzeigen
+st.download_button(
+    label="Ergebnis als Excel herunterladen",
+    data=output,
+    file_name="entfernungsergebnis.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
