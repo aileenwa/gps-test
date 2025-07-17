@@ -2,33 +2,59 @@ import streamlit as st
 import pandas as pd
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
+from geopy.distance import geodesic
 
 st.title("Distanzrechner: Kundenadresse vs. Parkposition")
 
 uploaded_file = st.file_uploader("Excel-Datei hochladen", type=["xlsx"])
+
 if uploaded_file is not None:
     df = pd.read_excel(uploaded_file)
 
-    geolocator = Nominatim(user_agent="geo-app")
-    geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
+    # Prüfen, ob alle nötigen Spalten da sind
+    required_cols = ["Kunden-ID", "Geo-Lat", "Geo-Lon", "Lieferadresse"]
+    if not all(col in df.columns for col in required_cols):
+        st.error(f"Die Datei muss folgende Spalten enthalten: {', '.join(required_cols)}")
+    else:
+        # Geocoder initialisieren
+        geolocator = Nominatim(user_agent="geo-app")
+        geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
 
-    def get_coordinates(address):
-        try:
-            location = geocode(address)
-            if location:
-                return pd.Series([location.latitude, location.longitude])
-        except:
-            pass
-        return pd.Series([None, None])
+        # Adresse in Koordinaten umwandeln
+        def get_coords(adresse):
+            try:
+                location = geocode(adresse)
+                if location:
+                    return pd.Series([location.latitude, location.longitude])
+            except:
+                pass
+            return pd.Series([None, None])
 
-    df[["Liefer_Lat", "Liefer_Lon"]] = df["Lieferadresse"].apply(get_coordinates)
-    df = df.drop(columns=["Lieferadresse"])
+        df[["Liefer_Lat", "Liefer_Lon"]] = df["Lieferadresse"].apply(get_coords)
 
-    st.success("Fertig! Hier ist deine Tabelle:")
-    st.dataframe(df)
+        # Entfernung berechnen (in Metern)
+        def berechne_entfernung(row):
+            try:
+                p1 = (row["Geo-Lat"], row["Geo-Lon"])
+                p2 = (row["Liefer_Lat"], row["Liefer_Lon"])
+                return round(geodesic(p1, p2).meters, 1)
+            except:
+                return None
 
-    st.download_button(
-        label="Ergebnis als Excel herunterladen",
-        data=df.to_excel(index=False),
-        file_name="ergebnis_geokoordinaten.xlsx"
-    )
+        df["Entfernung (m)"] = df.apply(berechne_entfernung, axis=1)
+
+        # Unnötige Spalten entfernen
+        df = df.drop(columns=["Lieferadresse"])
+        if "PLZ" in df.columns:
+            df = df.drop(columns=["PLZ"])
+
+        # Ergebnis anzeigen
+        st.success("✅ Fertig! Hier ist deine Tabelle:")
+        st.dataframe(df)
+
+        # Download-Button
+        st.download_button(
+            label="📥 Ergebnis als Excel herunterladen",
+            data=df.to_excel(index=False),
+            file_name="entfernungsergebnis.xlsx"
+        )
