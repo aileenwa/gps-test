@@ -12,16 +12,16 @@ uploaded_file = st.file_uploader("Excel-Datei hochladen", type=["xlsx"])
 if uploaded_file is not None:
     df = pd.read_excel(uploaded_file)
 
-    # Prüfen, ob alle nötigen Spalten da sind
+    # Erwartete Spalten prüfen
     required_cols = ["Kunden-ID", "Geo-Lat", "Geo-Lon", "Lieferadresse"]
     if not all(col in df.columns for col in required_cols):
         st.error(f"Die Datei muss folgende Spalten enthalten: {', '.join(required_cols)}")
     else:
-        # Geocoder initialisieren
+        # Geocoder konfigurieren
         geolocator = Nominatim(user_agent="geo-app")
         geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
 
-        # Adresse in Koordinaten umwandeln
+        # Adressen in Koordinaten umwandeln
         def get_coords(adresse):
             try:
                 location = geocode(adresse)
@@ -33,7 +33,7 @@ if uploaded_file is not None:
 
         df[["Liefer_Lat", "Liefer_Lon"]] = df["Lieferadresse"].apply(get_coords)
 
-        # Entfernung berechnen (in Metern)
+        # Entfernung berechnen
         def berechne_entfernung(row):
             try:
                 p1 = (row["Geo-Lat"], row["Geo-Lon"])
@@ -44,19 +44,15 @@ if uploaded_file is not None:
 
         df["Entfernung (m)"] = df.apply(berechne_entfernung, axis=1)
 
-        # Nur gewünschte Spalten behalten
-        df = df[["Kunden-ID", "Geo-Lat", "Geo-Lon", "Entfernung (m)"]]
-
-        # Ergebnis anzeigen
+        # Ergebnis anzeigen – nur die wichtigsten Spalten
         st.success("Fertig! Hier ist deine Tabelle:")
-        st.dataframe(df)
+        st.dataframe(df[["Kunden-ID", "Geo-Lat", "Geo-Lon", "Entfernung (m)"]])
 
-        # Excel in Speicher schreiben
+        # Excel für Download – alle relevanten Spalten
         output = BytesIO()
-        df.to_excel(output, index=False)
+        df[["Kunden-ID", "Geo-Lat", "Geo-Lon", "Liefer_Lat", "Liefer_Lon", "Entfernung (m)"]].to_excel(output, index=False)
         output.seek(0)
 
-        # Download-Button anzeigen
         st.download_button(
             label="Ergebnis als Excel herunterladen",
             data=output,
