@@ -37,17 +37,15 @@ if uploaded_file is not None:
         def berechne_entfernung(row):
             try:
                 p1 = (row["Geo-Lat"], row["Geo-Lon"])
-                p2 = (row["Liefer-Lat"], row["Liefer-Lon"])
+                p2 = (row["Liefer_Lat"], row["Liefer_Lon"])
                 return round(geodesic(p1, p2).meters, 1)
             except:
                 return None
 
         df["Entfernung (m)"] = df.apply(berechne_entfernung, axis=1)
 
-        # Unnötige Spalten entfernen
-        df = df.drop(columns=["Lieferadresse"])
-        if "PLZ" in df.columns:
-            df = df.drop(columns=["PLZ"])
+        # Nur gewünschte Spalten behalten
+        df = df[["Kunden-ID", "Geo-Lat", "Geo-Lon", "Entfernung (m)"]]
 
         # Ergebnis anzeigen
         st.success("Fertig! Hier ist deine Tabelle:")
