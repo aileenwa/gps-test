@@ -53,18 +53,15 @@ if uploaded_file is not None:
         st.success("Fertig! Hier ist deine Tabelle:")
         st.dataframe(df)
 
-  from io import BytesIO
+        # Excel in Speicher schreiben
+        output = BytesIO()
+        df.to_excel(output, index=False)
+        output.seek(0)
 
-# Excel in Speicher schreiben
-output = BytesIO()
-df.to_excel(output, index=False)
-output.seek(0)
-
-# Download-Button anzeigen
-st.download_button(
-    label="Ergebnis als Excel herunterladen",
-    data=output,
-    file_name="entfernungsergebnis.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
-
+        # Download-Button anzeigen
+        st.download_button(
+            label="Ergebnis als Excel herunterladen",
+            data=output,
+            file_name="entfernungsergebnis.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
